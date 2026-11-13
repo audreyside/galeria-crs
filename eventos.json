@@ -1,26 +1,6 @@
 {
   "eventos": [
     {
-      "titulo": "Seminario LPMC 2019",
-      "carpeta": "Seminario-LPMC-2019",
-      "descripcion": "Evento de demostración con fotos y un video.",
-      "archivos": [
-        "foto-1.jpg",
-        "foto-2.jpg",
-        "foto-3.jpg",
-        "video-demo.mp4"
-      ]
-    },
-    {
-      "titulo": "Jornadas de Seguros",
-      "carpeta": "Jornadas-Seguros",
-      "descripcion": "",
-      "archivos": [
-        "foto-1.jpg",
-        "foto-2.jpg"
-      ]
-    },
-    {
       "titulo": "XVI Jornadas Nacionales de Derecho de Seguros",
       "carpeta": "XVI-Jornadas-Nacionales-de-Derecho-de-Seguros",
       "descripcion": "",
