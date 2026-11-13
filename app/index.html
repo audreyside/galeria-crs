@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#003DA5">
+<title>Subir a Galería — CRS UC</title>
+<style>
+:root{--azul:#003DA5;--osc:#002D6E;--celeste:#0098CD;--gris:#575756;--ok:#0A6B2B;--err:#B3261E}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;font-family:-apple-system,'Helvetica Neue',Helvetica,Arial,sans-serif;background:#F4F6FA;
+  color:#222;padding-bottom:env(safe-area-inset-bottom)}
+.app-bar{background:linear-gradient(135deg,var(--azul),var(--osc));color:#fff;padding:calc(env(safe-area-inset-top) + .9rem) 1rem .9rem}
+.app-bar h1{margin:0;font-size:1.05rem;font-weight:600}
+.app-bar p{margin:.15rem 0 0;font-size:.75rem;opacity:.85}
+.cont{max-width:520px;margin:0 auto;padding:1rem}
+.card{background:#fff;border-radius:12px;padding:1rem;margin-bottom:1rem;box-shadow:0 2px 8px rgba(0,0,0,.07)}
+.card h2{margin:0 0 .6rem;font-size:.95rem;color:var(--azul)}
+label{display:block;margin:.7rem 0 .25rem;font-size:.82rem;font-weight:600;color:var(--gris)}
+input,select{width:100%;padding:.6rem;border:1px solid #c5cbd6;border-radius:8px;font-size:1rem;background:#fff}
+input[type=file]{padding:.45rem 0;font-size:.9rem}
+button{width:100%;margin-top:.9rem;background:var(--azul);color:#fff;border:none;border-radius:10px;
+  padding:.85rem;font-size:1rem;font-weight:600}
+button.sec{background:#fff;color:var(--azul);border:1.5px solid var(--azul)}
+button:disabled{opacity:.5}
+.chulo{color:var(--ok);font-weight:600}
+.lista{font-size:.82rem;color:var(--gris)}
+.lista li{margin:.15rem 0}
+.msg{padding:.6rem .8rem;border-radius:8px;font-size:.85rem;margin-top:.7rem}
+.msg.ok{background:#E5F4EA;color:var(--ok)}
+.msg.err{background:#FDEAEA;color:var(--err)}
+.progress{height:6px;background:#E4E8F0;border-radius:3px;overflow:hidden;margin-top:.7rem}
+.progress div{height:100%;width:0;background:var(--celeste);transition:width .2s}
+.mini{font-size:.75rem;color:var(--gris)}
+.det{font-size:.75rem;color:var(--gris);margin-top:.4rem}
+</style>
+</head>
+<body>
+<header class="app-bar">
+    <h1>Subir a la Galería</h1>
+    <p>Centro de Riesgos y Seguros UC</p>
+</header>
+
+<div class="cont">
+    <div class="card" id="card-conf">
+        <h2>1 · Conexión (se guarda en el teléfono)</h2>
+        <label>Usuario u organización de GitHub</label>
+        <input id="owner" placeholder="ej: miusuario">
+        <label>Repositorio de la galería</label>
+        <input id="repo" placeholder="ej: galeria-crs">
+        <label>Rama</label>
+        <input id="branch" value="main">
+        <label>Token de GitHub (Personal Access Token, permiso "repo")</label>
+        <input id="token" type="password" placeholder="ghp_...">
+        <p class="det">Crea el token en github.com > Settings > Developer settings >
+           Personal access tokens > Tokens (classic) > Generate new token, marca "repo".
+           El token queda guardado solo en este teléfono.</p>
+        <div id="msg-sitio"></div>
+        <button class="sec" id="btn-probar">Probar conexión</button>
+        <div id="msg-conf"></div>
+        <button id="btn-guardar" style="display:none">Guardar conexión</button>
+    </div>
+
+    <div class="card" id="card-subir" style="display:none">
+        <h2>2 · Subir fotos o videos</h2>
+        <label>Evento</label>
+        <select id="evento"><option value="">Cargando eventos…</option></select>
+        <label>…o crear un evento nuevo</label>
+        <input id="evento-nuevo" placeholder="ej: Seminario LPMC 2019">
+        <label>Fotos y videos (puedes elegir varios)</label>
+        <input type="file" id="archivos" multiple accept="image/*,video/*">
+        <div class="progress"><div id="barra"></div></div>
+        <div id="msg-subir"></div>
+        <button id="btn-subir" disabled>Subir</button>
+        <ul class="lista" id="lista"></ul>
+        <p class="mini">Al guardar, la galería en Netlify se actualiza sola en ~1 minuto.</p>
+    </div>
+
+    <div class="card">
+        <h2>Agregar a la pantalla de inicio</h2>
+        <p class="mini">iPhone: Compartir (⎋) > "Añadir a pantalla de inicio".
+           Android: menú ⋮ > "Añadir a pantalla principal".</p>
+    </div>
+</div>
+
+<script>
+(function () {
+    'use strict';
+
+    var FOTOS = ['jpg','jpeg','png','gif','webp','bmp','avif'];
+    var VIDEOS = ['mp4','webm','ogv','m4v','mov','mkv'];
+    var LS = 'egrs_app_conf';
+
+    // ---------- SITIO DE DESTINO ----------
+    // La galería publicada (Netlify redespliega sola tras cada subida).
+    var SITIO = 'https://galeria-crsuc.netlify.app';
+    // Valores sugeridos: cámbialos SOLO si tu repositorio se llama distinto.
+    var PRE = { owner: '', repo: 'galeria-crs', branch: 'main' };
+
+    var $ = function (id) { return document.getElementById(id); };
+    var conf = { owner: PRE.owner, repo: PRE.repo, branch: PRE.branch, token: '' };
+
+    // ---------- persistencia ----------
+    try {
+        var guardada = JSON.parse(localStorage.getItem(LS) || 'null');
+        if (guardada) {
+            conf = guardada;
+            $('owner').value = conf.owner || PRE.owner || '';
+            $('repo').value = conf.repo || PRE.repo;
+            $('branch').value = conf.branch || PRE.branch;
+            $('token').value = conf.token || '';
+            if (conf.token) { mostrarSubida(); }
+        }
+    } catch (e) {}
+
+    function guardar() {
+        conf = {
+            owner: $('owner').value.trim(),
+            repo: $('repo').value.trim(),
+            branch: $('branch').value.trim() || 'main',
+            token: $('token').value.trim()
+        };
+        localStorage.setItem(LS, JSON.stringify(conf));
+    }
+
+    function api(path, opts) {
+        opts = opts || {};
+        opts.headers = Object.assign({
+            'Authorization': 'Bearer ' + conf.token,
+            'Accept': 'application/vnd.github+json'
+        }, opts.headers || {});
+        if (opts.body && typeof opts.body !== 'string') {
+            opts.body = JSON.stringify(opts.body);
+            opts.headers['Content-Type'] = 'application/json';
+        }
+        return fetch('https://api.github.com' + path, opts).then(function (r) {
+            if (!r.ok) {
+                return r.text().then(function (t) {
+                    throw new Error('GitHub ' + r.status + ': ' + t.slice(0, 200));
+                });
+            }
+            return r.json();
+        });
+    }
+
+    function msj(id, texto, tipo) {
+        var el = $(id);
+        if (!texto) { el.innerHTML = ''; return; }
+        el.innerHTML = '<div class="msg ' + (tipo || 'ok') + '"></div>';
+        el.firstChild.textContent = texto;
+    }
+
+    function mostrarSubida() {
+        $('card-subir').style.display = '';
+        cargarEventos();
+    }
+
+    // ---------- conexión ----------
+    $('btn-probar').addEventListener('click', function () {
+        guardar();
+        msj('msg-conf', 'Probando…', 'ok');
+        api('/repos/' + conf.owner + '/' + conf.repo).then(function (r) {
+            msj('msg-conf', '✓ Conectado a ' + r.full_name + ' (rama ' + conf.branch + ').', 'ok');
+            $('btn-guardar').style.display = '';
+            mostrarSubida();
+        }).catch(function (e) {
+            msj('msg-conf', 'No se pudo conectar. Revisa usuario, repositorio y token. (' + e.message + ')', 'err');
+        });
+    });
+    $('btn-guardar').addEventListener('click', function () {
+        guardar();
+        msj('msg-conf', 'Conexión guardada en este teléfono. ✓', 'ok');
+    });
+
+    // Verificar que el sitio de Netlify está publicado y enlazado
+    (function () {
+        var cont = document.getElementById('msg-sitio');
+        if (!cont) { return; }
+        fetch(SITIO, { method: 'HEAD' }).then(function (r) {
+            if (r.ok) {
+                cont.innerHTML = '<div class="msg ok"></div>';
+                cont.firstChild.textContent = 'Sitio de destino: ' + SITIO.replace('https://', '') + ' ✓ (las subidas aparecen ahí en ~1 minuto)';
+            }
+        }).catch(function () {
+            cont.innerHTML = '<div class="msg err"></div>';
+            cont.firstChild.textContent = 'Ojo: no se pudo alcanzar ' + SITIO + '. Si lo desplegaste arrastrando la carpeta (Drop), conéctalo primero a GitHub — ver LEEME.txt, paso 2.';
+        });
+    })();
+
+    // ---------- eventos ----------
+    var datos = { eventos: [] };
+    var eventosSha = null;
+
+    function carpetaDe(t) { return t.trim().replace(/\s+/g, '-').replace(/[^A-Za-z0-9\-_]/g, ''); }
+
+    function cargarEventos() {
+        $('evento').innerHTML = '<option value="">Cargando eventos…</option>';
+        api('/repos/' + conf.owner + '/' + conf.repo + '/contents/eventos.json?ref=' + encodeURIComponent(conf.branch))
+            .then(function (r) {
+                eventosSha = r.sha;
+                var txt = '';
+                try { txt = decodeURIComponent(escape(atob(r.content.replace(/\n/g, '')))); }
+                catch (e) { txt = atob(r.content.replace(/\n/g, '')); }
+                datos = JSON.parse(txt || '{"eventos":[]}');
+                llenarSelector();
+            })
+            .catch(function () {
+                eventosSha = null;
+                datos = { eventos: [] };
+                llenarSelector();
+            });
+    }
+
+    function llenarSelector() {
+        var sel = $('evento');
+        sel.innerHTML = '';
+        var vacio = document.createElement('option');
+        vacio.value = ''; vacio.textContent = '— (crear nuevo más abajo) —';
+        sel.appendChild(vacio);
+        (datos.eventos || []).forEach(function (ev, i) {
+            var o = document.createElement('option');
+            o.value = String(i);
+            o.textContent = ev.titulo || ev.carpeta;
+            sel.appendChild(o);
+        });
+    }
+
+    // ---------- selección de archivos ----------
+    var archivos = [];
+    $('archivos').addEventListener('change', function () {
+        archivos = Array.prototype.slice.call(this.files);
+        var ul = $('lista');
+        ul.innerHTML = '';
+        var ok = 0;
+        archivos.forEach(function (f) {
+            var ext = (f.name.split('.').pop() || '').toLowerCase();
+            var esOk = FOTOS.indexOf(ext) >= 0 || VIDEOS.indexOf(ext) >= 0;
+            if (esOk) { ok++; }
+            var li = document.createElement('li');
+            li.textContent = (esOk ? '✓ ' : '✗ formato no permitido: ') + f.name;
+            if (!esOk) { li.style.color = '#B3261E'; }
+            ul.appendChild(li);
+        });
+        $('btn-subir').disabled = !(ok > 0);
+        msj('msg-subir', ok ? ok + ' archivo(s) listos para subir.' : '', 'ok');
+    });
+
+    // ---------- subida (GitHub Git Data API: sin límite de 1 MB) ----------
+    function blobBase64(archivo) {
+        return new Promise(function (res, rej) {
+            var fr = new FileReader();
+            fr.onload = function () { res(fr.result.split(',')[1]); };
+            fr.onerror = function () { rej(new Error('No se pudo leer ' + archivo.name)); };
+            fr.readAsDataURL(archivo);
+        });
+    }
+
+    $('btn-subir').addEventListener('click', function () {
+        var sel = $('evento').value;
+        var nuevo = $('evento-nuevo').value.trim();
+        var titulo, carpeta;
+
+        if (nuevo !== '') {
+            titulo = nuevo;
+            carpeta = carpetaDe(nuevo);
+            if (!carpeta) { msj('msg-subir', 'Escribe un nombre de evento válido.', 'err'); return; }
+        } else if (sel !== '') {
+            var ev = datos.eventos[parseInt(sel, 10)];
+            titulo = ev.titulo || ev.carpeta;
+            carpeta = ev.carpeta || carpetaDe(ev.titulo || '');
+        } else {
+            msj('msg-subir', 'Elige un evento o escribe uno nuevo.', 'err');
+            return;
+        }
+
+        var subibles = archivos.filter(function (f) {
+            var ext = (f.name.split('.').pop() || '').toLowerCase();
+            return FOTOS.indexOf(ext) >= 0 || VIDEOS.indexOf(ext) >= 0;
+        });
+
+        if (!subibles.length) { msj('msg-subir', 'No hay archivos válidos.', 'err'); return; }
+
+        $('btn-subir').disabled = true;
+        $('barra').style.width = '5%';
+        msj('msg-subir', 'Subiendo 0/' + subibles.length + '…', 'ok');
+
+        // 1) commit y árbol actuales
+        api('/repos/' + conf.owner + '/' + conf.repo + '/git/ref/heads/' + encodeURIComponent(conf.branch))
+            .then(function (r) { return api('/repos/' + conf.owner + '/' + conf.repo + '/git/commits/' + r.object.sha); })
+            .then(function (commit) {
+                var baseTree = commit.tree.sha;
+                var head = commit.sha;
+
+                // 2) blobs de los archivos
+                var blobs = [];
+                var hechos = 0;
+                return subibles.reduce(function (prom, f) {
+                    return prom.then(function () {
+                        return blobBase64(f).then(function (b64) {
+                            return api('/repos/' + conf.owner + '/' + conf.repo + '/git/blobs', {
+                                method: 'POST', body: { content: b64, encoding: 'base64' }
+                            }).then(function (b) {
+                                var limpio = f.name.replace(/[^A-Za-z0-9._-]/g, '_');
+                                blobs.push({ path: 'eventos/' + carpeta + '/' + limpio, sha: b.sha });
+                                hechos++;
+                                $('barra').style.width = Math.round(5 + 70 * hechos / subibles.length) + '%';
+                                msj('msg-subir', 'Subiendo ' + hechos + '/' + subibles.length + '…', 'ok');
+                            });
+                        });
+                    });
+                }, Promise.resolve()).then(function () {
+                    // 3) actualizar eventos.json (agregar evento o anexar archivos)
+                    var limpios = blobs.map(function (b) { return b.path.split('/').pop(); });
+                    var idx = -1;
+                    (datos.eventos || []).forEach(function (ev, i) {
+                        if ((ev.carpeta || carpetaDe(ev.titulo || '')) === carpeta) { idx = i; }
+                    });
+                    if (idx >= 0) {
+                        datos.eventos[idx].archivos = (datos.eventos[idx].archivos || []).concat(limpios);
+                    } else {
+                        datos.eventos.push({
+                            titulo: titulo, carpeta: carpeta,
+                            descripcion: '', archivos: limpios
+                        });
+                    }
+                    var jsonB64 = btoa(unescape(encodeURIComponent(JSON.stringify(datos, null, 2))));
+
+                    return api('/repos/' + conf.owner + '/' + conf.repo + '/git/blobs', {
+                        method: 'POST', body: { content: jsonB64, encoding: 'base64' }
+                    }).then(function (bJson) {
+                        var tree = blobs.map(function (b) {
+                            return { path: b.path, mode: '100644', type: 'blob', sha: b.sha };
+                        });
+                        if (eventosSha) {
+                            tree.push({ path: 'eventos.json', mode: '100644', type: 'blob', sha: bJson.sha });
+                        } else {
+                            tree.push({ path: 'eventos.json', mode: '100644', type: 'blob', sha: bJson.sha });
+                        }
+                        // 4) árbol, commit y ref
+                        return api('/repos/' + conf.owner + '/' + conf.repo + '/git/trees', {
+                            method: 'POST', body: { base_tree: baseTree, tree: tree }
+                        }).then(function (t) {
+                            return api('/repos/' + conf.owner + '/' + conf.repo + '/git/commits', {
+                                method: 'POST',
+                                body: { message: 'Subida desde el celu: ' + titulo, tree: t.sha, parents: [head] }
+                            });
+                        }).then(function (c) {
+                            return api('/repos/' + conf.owner + '/' + conf.repo + '/git/refs/heads/' + encodeURIComponent(conf.branch), {
+                                method: 'PATCH', body: { sha: c.sha, force: false }
+                            });
+                        });
+                    });
+                });
+            })
+            .then(function () {
+                $('barra').style.width = '100%';
+                msj('msg-subir', '✓ Subidos ' + subibles.length + ' archivo(s) a "' + titulo +
+                    '". La galería se actualiza en ~1 minuto.', 'ok');
+                $('archivos').value = '';
+                $('lista').innerHTML = '';
+                $('evento-nuevo').value = '';
+                cargarEventos();
+            })
+            .catch(function (e) {
+                msj('msg-subir', 'Error: ' + e.message, 'err');
+            })
+            .then(function () {
+                $('btn-subir').disabled = false;
+            });
+    });
+})();
+</script>
+</body>
+</html>

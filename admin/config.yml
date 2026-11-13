@@ -1,0 +1,30 @@
+backend:
+  name: git-gateway
+  branch: main
+
+site_url: https://centroriesgosyseguros.uc.cl
+locale: es
+
+media_folder: "eventos"
+public_folder: "/eventos"
+
+collections:
+  - name: "galeria"
+    label: "Galería"
+    files:
+      - name: "eventos"
+        label: "Eventos y archivos"
+        file: "eventos.json"
+        fields:
+          - name: "eventos"
+            label: "Eventos"
+            label_singular: "evento"
+            widget: "list"
+            fields:
+              - { name: "titulo", label: "Título del evento", widget: "string" }
+              - { name: "carpeta", label: "Carpeta (opcional)", widget: "string", required: false }
+              - { name: "descripcion", label: "Descripción", widget: "string", required: false }
+              - name: "archivos"
+                label: "Fotos y videos (sube con 'Elegir archivos' — admite varios a la vez)"
+                widget: "list"
+                field: { name: "ruta", label: "Archivo", widget: "file" }

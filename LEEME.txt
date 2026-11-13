@@ -1,0 +1,98 @@
+==========================================================
+ Galería CRS UC — versión para NETLIFY (sitio estático)
+==========================================================
+Página 100% estática (HTML+JS): la galería lee un archivo
+eventos.json y muestra los archivos que este declare. El panel
+de carga usa Decap CMS (panel de administración estándar de
+Netlify) y guarda las fotos/videos en tu repositorio.
+
+PALETA UC: azul #003DA5, degradado #002D6E, celeste #0098CD.
+
+OPCIÓN A — PROBAR EN 1 MINUTO (sin panel)
+1. Entra a https://app.netlify.com/drop
+2. Arrastra la carpeta "galeria-netlify" completa.
+3. Netlify te da una URL (ej: algo.netlify.app). Listo: la galería
+   se ve con los eventos de demostración. Los archivos de demo
+   están en eventos/ y puedes borrarlos después.
+   (Esta opción no tiene panel de carga: para cargar de verdad,
+   usa la Opción B.)
+
+OPCIÓN B — CON PANEL DE CARGA (recomendada, 15 min)
+Requiere: cuenta de GitHub y cuenta de Netlify.
+
+1. GITHUB
+   - Crea un repositorio público (ej: galeria-crs).
+   - Sube todo el contenido de esta carpeta (index.html, admin/,
+     eventos.json, eventos/, netlify.toml).
+
+2. NETLIFY
+   - "Add new site" > "Import an existing project" > elige el repo.
+   - Deploy (no necesita configuración de build; publish dir = ".").
+
+3. ACTIVAR EL PANEL
+   - En tu sitio en Netlify: Site configuration > Identity >
+     "Enable Identity".
+   - En la misma sección Identity: botón "Invite users" > invita
+     TU correo (quedará registrado con clave).
+   - Site configuration > Identity > pestaña "Services" >
+     "Git Gateway" > "Enable Git Gateway" (conecta con GitHub).
+
+4. USAR
+   - Entra a  https://TU-SITIO.netlify.app/admin/
+   - Inicia sesión con el correo invitado.
+   - "Eventos y archivos": agrega un evento (título, descripción)
+     y en "Fotos y videos" usa "Elegir archivos" para subir varias
+     fotos y/o videos de una vez (se guardan en eventos/ del repo).
+   - Al guardar, Netlify redespliega (~1 min) y la galería se
+     actualiza sola.
+
+FORMATOS
+   - Fotos: jpg, jpeg, png, gif, webp, bmp, avif
+   - Videos: mp4, webm, ogv, m4v, mov, mkv
+   (un archivo eventos.json declara todo; puedes verlo/editarlo
+   a mano si prefieres).
+
+USO EN EL SITIO DEL CRS UC
+   - Menús > Nuevo > tipo "Envoltura / IFRAME" con la URL de Netlify.
+   - O cambia el enlace del bloque "Galería" de la portada
+     (hoy apunta a Flickr) a esa URL.
+   Nota: embebida en iframe, el enlace "Panel de carga" del pie
+   funciona igual (abre /admin/).
+
+SEGURIDAD
+   - Solo quienes sean invitados en Netlify Identity pueden entrar
+     al /admin/ y guardar. La galería pública es de solo lectura.
+
+==========================================================
+ CONECTAR LA APP CON galeria-crsuc.netlify.app
+==========================================================
+REGLA: la app sube las fotos a tu REPOSITORIO de GitHub, y
+Netlify publica el sitio SOLO si está conectado a ese repo.
+
+1) ¿Tu sitio lo desplegaste arrastrando la carpeta a
+   app.netlify.com/drop ? Entonces NO está conectado a GitHub
+   y las subidas de la app NO aparecerán. Conéctalo:
+   a. Sube el contenido de esta carpeta a un repo nuevo en GitHub
+      (ej: github.com/TU-USUARIO/galeria-crs). Incluye app/, admin/,
+      index.html, eventos.json, eventos/ y netlify.toml.
+   b. En Netlify: Site configuration > Build & deploy >
+      "Link repository" > elige el repo. (Netlify te pedirá conectar
+      tu cuenta de GitHub; el sitio conservará la URL
+      galeria-crsuc.netlify.app.)
+   c. Activa Identity + Git Gateway (pasos 3 de la Opción B)
+      para el panel /admin/ si aún no lo hiciste.
+
+2) En la app (TU-SITIO/app/ desde el celu):
+   - "Usuario de GitHub": TU-USUARIO
+   - "Repositorio": galeria-crs (ya viene sugerido)
+   - "Rama": main (ya viene sugerida)
+   - "Token": tu Personal Access Token con permiso "repo".
+   - Toca "Probar conexión": debe decir "Conectado a TU-USUARIO/galeria-crs".
+
+3) Comprueba: sube una foto de prueba y espera ~1 minuto;
+   debe aparecer en https://galeria-crsuc.netlify.app dentro de su evento.
+
+TIP: si el repositorio se llama distinto a "galeria-crs", edita la
+línea  var PRE = { owner: '', repo: 'galeria-crs', branch: 'main' };
+de app/index.html y pon el nombre real (así la app ya viene
+preconfigurada para tu sitio).
