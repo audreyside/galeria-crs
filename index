@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Galería — Centro de Riesgos y Seguros UC</title>
+<style>
+:root{--azul:#003DA5;--osc:#002D6E;--celeste:#0098CD;--gris:#575756}
+*{box-sizing:border-box}
+body{margin:0;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;color:#222;background:#fff}
+.egc-cabecera{background:linear-gradient(135deg,var(--azul),var(--osc));color:#fff;padding:1.4rem 1.5rem}
+.egc-cabecera h1{margin:0;font-size:1.35rem;font-weight:600}
+.egc-cabecera p{margin:.25rem 0 0;font-size:.85rem;opacity:.85}
+.egc-cuerpo{max-width:1200px;margin:0 auto;padding:0 1rem}
+.eg-empty{text-align:center;padding:3rem 0;opacity:.7}
+.eg-nav{display:flex;flex-wrap:wrap;gap:.5rem;padding:1rem 0;border-bottom:1px solid #EDF0F5;margin-bottom:.5rem}
+.eg-chip{display:inline-block;padding:.35rem 1rem;border-radius:999px;border:1.5px solid var(--azul);
+  color:var(--azul);text-decoration:none;font-size:.88rem;font-weight:600;white-space:nowrap;cursor:pointer;background:none}
+.eg-chip:hover{background:var(--azul);color:#fff}
+.eg-event{margin-bottom:3rem;scroll-margin-top:12px}
+.eg-event-head{display:flex;align-items:baseline;gap:.75rem;flex-wrap:wrap}
+.eg-event-title{font-size:1.45rem;margin:0;color:var(--azul)}
+.eg-event-date{font-size:.83rem;color:var(--celeste);font-weight:600}
+.eg-event-desc{margin:.3rem 0 0;max-width:70ch;color:var(--gris);font-size:.95rem}
+.eg-scroll{display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x proximity;padding:14px 4px 18px;
+  scrollbar-width:thin;scrollbar-color:var(--celeste) #EDF0F5;-webkit-overflow-scrolling:touch}
+.eg-item{flex:0 0 auto;width:min(72vw,340px);margin:0;scroll-snap-align:start;cursor:zoom-in}
+.eg-item img,.eg-item video{width:100%;height:220px;object-fit:cover;border-radius:10px;display:block;background:#E8ECF3}
+.eg-item figcaption{display:none;font-size:.78rem;color:var(--gris);padding-top:5px;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.eg-grid{display:flex;flex-wrap:wrap;gap:14px;padding:14px 0 24px}
+.eg-grid .eg-item{width:min(44vw,230px)}
+.eg-grid .eg-item img,.eg-grid .eg-item video{height:180px}
+.eg-volver{display:inline-block;margin:1rem 0 .2rem;padding:.4rem 1rem;border:1.5px solid var(--azul);
+  border-radius:999px;color:var(--azul);text-decoration:none;font-size:.88rem;font-weight:600}
+.eg-volver:hover{background:var(--azul);color:#fff}
+.eg-pie{max-width:1200px;margin:0 auto;padding:1.2rem 1rem 2.5rem;font-size:.78rem;color:var(--gris);
+  border-top:1px solid #EDF0F5;display:flex;justify-content:space-between;flex-wrap:wrap;gap:.5rem}
+.eg-pie a{color:var(--celeste)}
+.eg-lightbox{position:fixed;inset:0;background:rgba(0,32,84,.94);z-index:10000;display:flex;
+  align-items:center;justify-content:center}
+.eg-lightbox[hidden]{display:none}
+.eg-lightbox img,.eg-lightbox video{max-width:92vw;max-height:86vh;object-fit:contain;border-radius:6px}
+.eg-lb-btn{position:absolute;background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.4);
+  border-radius:50%;width:46px;height:46px;font-size:1.4rem;line-height:1;cursor:pointer}
+.eg-lb-btn:hover{background:rgba(255,255,255,.28)}
+.eg-lb-close{top:14px;right:14px}
+.eg-lb-prev{left:14px;top:50%;transform:translateY(-50%)}
+.eg-lb-next{right:14px;top:50%;transform:translateY(-50%)}
+.eg-lb-caption{position:absolute;bottom:18px;left:0;right:0;text-align:center;color:#fff;font-size:.95rem;
+  padding:0 4rem;text-shadow:0 1px 3px rgba(0,0,0,.8)}
+</style>
+</head>
+<body>
+<header class="egc-cabecera">
+    <h1>Galería de eventos</h1>
+    <p>Centro de Riesgos y Seguros UC &middot; Facultad de Derecho</p>
+</header>
+
+<div class="egc-cuerpo">
+    <p class="eg-empty" id="eg-cargando">Cargando galería…</p>
+</div>
+
+<footer class="eg-pie">
+    <span>Centro de Riesgos y Seguros UC &middot; Avda. Lib. Bernardo O'Higgins 340, Edificio Facultad de Derecho, 5° Piso, Santiago</span>
+    <a href="admin/" id="eg-admin-link" hidden>Panel de carga</a>
+</footer>
+
+<script>
+(function () {
+    'use strict';
+
+    var FOTOS = ['jpg','jpeg','png','gif','webp','bmp','avif'];
+    var VIDEOS = ['mp4','webm','ogv','m4v','mov','mkv'];
+
+    // Resuelve la ruta de un archivo según cómo esté escrito:
+    //  - "eventos/xxx" (subido desde el panel/CMS)  -> tal cual
+    //  - "foto1.jpg"  (referencia dentro del evento) -> eventos/<carpeta>/foto1.jpg
+    function resolver(ruta, carpeta) {
+        ruta = (ruta || '').trim();
+        if (!ruta) { return ''; }
+        if (/^(eventos\/|https?:)/.test(ruta)) { return ruta; }
+        return 'eventos/' + carpeta + '/' + ruta;
+    }
+
+    function tipoDe(ruta) {
+        var ext = (ruta.split('.').pop() || '').toLowerCase();
+        if (FOTOS.indexOf(ext) >= 0) { return 'foto'; }
+        if (VIDEOS.indexOf(ext) >= 0) { return 'video'; }
+        return 'foto';
+    }
+
+    function pieDe(ruta) {
+        return decodeURIComponent(ruta.split('/').pop().replace(/\.[^.]+$/, ''));
+    }
+
+    // --- datos: eventos.json, o demo/data.json si se abre sin servidor ---
+    function cargarDatos() {
+        return fetch('eventos.json', { cache: 'no-store' }).then(function (r) {
+            if (!r.ok) { throw new Error('no eventos.json'); }
+            return r.json();
+        }).catch(function () {
+            return fetch('demo/data.json', { cache: 'no-store' }).then(function (r) { return r.json(); });
+        });
+    }
+
+    function render(data) {
+        var cuerpo = document.querySelector('.egc-cuerpo');
+        var eventos = (data && data.eventos) || [];
+        cuerpo.innerHTML = '';
+
+        // Vista de carpeta: index.html?evento=<carpeta> abre solo ese evento.
+        var filtro = new URLSearchParams(location.search).get('evento');
+
+        if (filtro) {
+            eventos = eventos.filter(function (ev) { return (ev.carpeta || '') === filtro; });
+        }
+
+        if (!eventos.length) {
+            cuerpo.innerHTML = '<p class="eg-empty">Todavía no hay eventos publicados.</p>';
+            return [];
+        }
+
+        var nav = document.createElement('nav');
+        nav.className = 'eg-nav';
+        var figs = [];
+
+        eventos.forEach(function (ev, i) {
+            var archivos = (ev.archivos || []);
+            if (!archivos.length) { return; }
+
+            var chip = document.createElement('a');
+            chip.className = 'eg-chip';
+            chip.href = '?evento=' + encodeURIComponent(ev.carpeta || '');
+            chip.textContent = ev.titulo || ev.carpeta || ('Evento ' + (i + 1));
+            nav.appendChild(chip);
+
+            var sec = document.createElement('section');
+            sec.className = 'eg-event';
+            sec.id = 'eg-event-' + i;
+
+            var head = document.createElement('header');
+            head.className = 'eg-event-head';
+            var titulo = ev.titulo || ev.carpeta || ('Evento ' + (i + 1));
+            var nF = 0, nV = 0;
+            archivos.forEach(function (r) { if (tipoDe(r) === 'video') { nV++; } else { nF++; } });
+            head.innerHTML = '<h2 class="eg-event-title"></h2><span class="eg-event-date">' +
+                nF + ' foto(s)' + (nV ? ' · ' + nV + ' video(s)' : '') + '</span>';
+            head.querySelector('.eg-event-title').textContent = titulo;
+            var linkTitulo = document.createElement('a');
+            linkTitulo.href = '?evento=' + encodeURIComponent(ev.carpeta || '');
+            linkTitulo.style.cssText = 'color:inherit;text-decoration:none';
+            var h2 = head.querySelector('.eg-event-title');
+            h2.parentNode.insertBefore(linkTitulo, h2);
+            linkTitulo.appendChild(h2);
+            sec.appendChild(head);
+
+            if (ev.descripcion) {
+                var p = document.createElement('p');
+                p.className = 'eg-event-desc';
+                p.textContent = ev.descripcion;
+                sec.appendChild(p);
+            }
+
+            var sc = document.createElement('div');
+            sc.className = filtro ? 'eg-grid' : 'eg-scroll';
+            if (filtro) {
+                sc.setAttribute('aria-label', 'Fotos del evento');
+            } else {
+                sc.setAttribute('data-eg-scroll', '');
+                sc.tabIndex = 0;
+                sc.setAttribute('aria-label', 'Contenido del evento');
+            }
+
+            archivos.forEach(function (ruta) {
+                var src = resolver(ruta, ev.carpeta || '');
+                if (!src) { return; }
+                var tipo = tipoDe(src);
+                var fig = document.createElement('figure');
+                fig.className = 'eg-item';
+                fig.setAttribute('data-eg-item', '');
+                fig.setAttribute('data-tipo', tipo);
+                fig.setAttribute('data-full', src);
+
+                if (tipo === 'video') {
+                    var v = document.createElement('video');
+                    v.src = src; v.muted = true; v.playsInline = true;
+                    v.setAttribute('preload', 'metadata');
+                    fig.appendChild(v);
+                } else {
+                    var im = document.createElement('img');
+                    im.src = src; im.alt = pieDe(src); im.loading = 'lazy';
+                    fig.appendChild(im);
+                }
+                var cap = document.createElement('figcaption');
+                cap.textContent = pieDe(src);
+                fig.appendChild(cap);
+                sc.appendChild(fig);
+                figs.push(fig);
+            });
+
+            sec.appendChild(sc);
+            cuerpo.appendChild(sec);
+        });
+
+        if (figs.length) { cuerpo.insertBefore(nav, cuerpo.firstChild); }
+        else { cuerpo.innerHTML = '<p class="eg-empty">Todavía no hay fotos publicadas.</p>'; }
+        return figs;
+    }
+
+    function interaccion(figs) {
+        Array.prototype.forEach.call(document.querySelectorAll('[data-eg-scroll]'), function (sc) {
+            sc.addEventListener('wheel', function (e) {
+                if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+                    sc.scrollLeft += e.deltaY;
+                    e.preventDefault();
+                }
+            }, { passive: false });
+        });
+
+        if (!figs.length) { return; }
+
+        var lb = document.createElement('div');
+        lb.className = 'eg-lightbox';
+        lb.hidden = true;
+        lb.innerHTML =
+            '<button type="button" class="eg-lb-btn eg-lb-close" aria-label="Cerrar">&times;</button>' +
+            '<button type="button" class="eg-lb-btn eg-lb-prev" aria-label="Anterior">&#8249;</button>' +
+            '<button type="button" class="eg-lb-btn eg-lb-next" aria-label="Siguiente">&#8250;</button>' +
+            '<div class="eg-lb-caption"></div>';
+        document.body.appendChild(lb);
+
+        var capEl = lb.querySelector('.eg-lb-caption');
+        var actual = null, idx = 0;
+
+        function limpiar() {
+            if (actual && actual.parentNode) { actual.parentNode.removeChild(actual); }
+            actual = null;
+        }
+        function mostrar(i) {
+            idx = (i + figs.length) % figs.length;
+            var fig = figs[idx];
+            limpiar();
+            if (fig.getAttribute('data-tipo') === 'video') {
+                actual = document.createElement('video');
+                actual.src = fig.getAttribute('data-full');
+                actual.controls = true; actual.autoplay = true; actual.playsInline = true;
+            } else {
+                actual = document.createElement('img');
+                actual.src = fig.getAttribute('data-full');
+                actual.alt = '';
+            }
+            lb.insertBefore(actual, capEl);
+            capEl.textContent = fig.querySelector('figcaption').textContent;
+            lb.hidden = false;
+            document.body.style.overflow = 'hidden';
+        }
+        function cerrar() {
+            lb.hidden = true; limpiar();
+            document.body.style.overflow = '';
+        }
+
+        figs.forEach(function (fig, i) {
+            fig.addEventListener('click', function (e) { e.preventDefault(); mostrar(i); });
+        });
+        lb.querySelector('.eg-lb-close').addEventListener('click', cerrar);
+        lb.querySelector('.eg-lb-prev').addEventListener('click', function () { mostrar(idx - 1); });
+        lb.querySelector('.eg-lb-next').addEventListener('click', function () { mostrar(idx + 1); });
+        lb.addEventListener('click', function (e) { if (e.target === lb) { cerrar(); } });
+        document.addEventListener('keydown', function (e) {
+            if (lb.hidden) { return; }
+            if (e.key === 'Escape') { cerrar(); }
+            else if (e.key === 'ArrowRight') { mostrar(idx + 1); }
+            else if (e.key === 'ArrowLeft') { mostrar(idx - 1); }
+        });
+    }
+
+    cargarDatos().then(function (data) {
+        interaccion(render(data));
+        // Si el sitio tiene Netlify Identity (CMS activo), muestra el enlace al panel.
+        if (window.netlifyIdentity) {
+            window.netlifyIdentity.on('init', function (user) {
+                if (user) { document.getElementById('eg-admin-link').hidden = false; }
+            });
+        }
+    }).catch(function () {
+        document.getElementById('eg-cargando').textContent = 'No se pudo cargar la galería.';
+    });
+})();
+</script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"4edd5f8ec12a48cfa682ab8261b80a79","spa":2}' crossorigin="anonymous"></script>
+</body>
+</html>
