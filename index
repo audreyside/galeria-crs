@@ -62,7 +62,7 @@ body{margin:0;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;color:#222
 </div>
 
 <footer class="eg-pie">
-    <span>Centro de Riesgos y Seguros UC &middot; Avda. Lib. Bernardo O'Higgins 340, Edificio Facultad de Derecho, 5° Piso, Santiago</span>
+    <span>Centro de Riesgos y Seguros UC &middot; Avda. Lib. Bernardo O'Higgins 340, Edificio Facultad de Derecho, 4° Piso, Oficina 415, Santiago</span>
     <a href="admin/" id="eg-admin-link" hidden>Panel de carga</a>
 </footer>
 
