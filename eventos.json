@@ -4,13 +4,77 @@
       "titulo": "Seminario LPMC 2019",
       "carpeta": "Seminario-LPMC-2019",
       "descripcion": "Evento de demostración con fotos y un video.",
-      "archivos": ["foto-1.jpg", "foto-2.jpg", "foto-3.jpg", "video-demo.mp4"]
+      "archivos": [
+        "foto-1.jpg",
+        "foto-2.jpg",
+        "foto-3.jpg",
+        "video-demo.mp4"
+      ]
     },
     {
       "titulo": "Jornadas de Seguros",
       "carpeta": "Jornadas-Seguros",
       "descripcion": "",
-      "archivos": ["foto-1.jpg", "foto-2.jpg"]
+      "archivos": [
+        "foto-1.jpg",
+        "foto-2.jpg"
+      ]
+    },
+    {
+      "titulo": "XVI Jornadas Nacionales de Derecho de Seguros",
+      "carpeta": "XVI-Jornadas-Nacionales-de-Derecho-de-Seguros",
+      "descripcion": "",
+      "archivos": [
+        "IMG_7889.jpeg",
+        "IMG_7885.jpeg",
+        "IMG_7884.jpeg",
+        "IMG_7880.jpeg",
+        "IMG_7878.jpeg",
+        "IMG_7879.jpeg",
+        "IMG_7869.jpeg",
+        "IMG_7866.jpeg",
+        "IMG_7863.jpeg",
+        "IMG_7862.jpeg",
+        "IMG_7859.jpeg",
+        "IMG_7849.jpeg",
+        "IMG_7848.jpeg",
+        "IMG_7845.jpeg",
+        "IMG_7844.jpeg",
+        "IMG_7843.jpeg",
+        "IMG_7840.jpeg",
+        "IMG_7839.jpeg",
+        "IMG_7838.jpeg",
+        "IMG_7837.jpeg",
+        "IMG_7836.jpeg",
+        "IMG_7835.jpeg",
+        "IMG_7834.jpeg",
+        "IMG_7833.jpeg",
+        "IMG_7832.jpeg",
+        "IMG_7828.jpeg",
+        "IMG_7827.jpeg",
+        "IMG_7824.jpeg",
+        "IMG_7823.jpeg",
+        "IMG_7821.jpeg",
+        "IMG_7820.jpeg",
+        "IMG_7819.jpeg",
+        "IMG_7818.jpeg",
+        "IMG_7816.jpeg",
+        "IMG_7815.jpeg",
+        "IMG_7814.jpeg",
+        "IMG_7813.jpeg",
+        "IMG_7812.jpeg",
+        "IMG_7811.jpeg",
+        "IMG_7810.jpeg",
+        "IMG_7809.jpeg",
+        "IMG_7808.jpeg",
+        "IMG_7807.jpeg",
+        "IMG_7806.jpeg",
+        "IMG_7805.jpeg",
+        "IMG_7804.jpeg",
+        "IMG_7803.jpeg",
+        "IMG_7802.jpeg",
+        "IMG_7801.jpeg"
+      ]
     }
   ]
 }
