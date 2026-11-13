@@ -26,7 +26,14 @@ body{margin:0;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;color:#222
   scrollbar-width:thin;scrollbar-color:var(--celeste) #EDF0F5;-webkit-overflow-scrolling:touch}
 .eg-item{flex:0 0 auto;width:min(72vw,340px);margin:0;scroll-snap-align:start;cursor:zoom-in}
 .eg-item img,.eg-item video{width:100%;height:220px;object-fit:cover;border-radius:10px;display:block;background:#E8ECF3}
-..eg-item figcaption{display:none;font-size:.78rem;color:var(--gris);padding-top:5px;overflow:hidden;
+.eg-item figcaption{display:none;font-size:.78rem;color:var(--gris);padding-top:5px;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.eg-grid{display:flex;flex-wrap:wrap;gap:14px;padding:14px 0 24px}
+.eg-grid .eg-item{width:min(44vw,230px)}
+.eg-grid .eg-item img,.eg-grid .eg-item video{height:180px}
+.eg-volver{display:inline-block;margin:1rem 0 .2rem;padding:.4rem 1rem;border:1.5px solid var(--azul);
+  border-radius:999px;color:var(--azul);text-decoration:none;font-size:.88rem;font-weight:600}
+.eg-volver:hover{background:var(--azul);color:#fff}
 .eg-pie{max-width:1200px;margin:0 auto;padding:1.2rem 1rem 2.5rem;font-size:.78rem;color:var(--gris);
   border-top:1px solid #EDF0F5;display:flex;justify-content:space-between;flex-wrap:wrap;gap:.5rem}
 .eg-pie a{color:var(--celeste)}
@@ -102,6 +109,13 @@ body{margin:0;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;color:#222
         var eventos = (data && data.eventos) || [];
         cuerpo.innerHTML = '';
 
+        // Vista de carpeta: index.html?evento=<carpeta> abre solo ese evento.
+        var filtro = new URLSearchParams(location.search).get('evento');
+
+        if (filtro) {
+            eventos = eventos.filter(function (ev) { return (ev.carpeta || '') === filtro; });
+        }
+
         if (!eventos.length) {
             cuerpo.innerHTML = '<p class="eg-empty">Todavía no hay eventos publicados.</p>';
             return [];
@@ -117,7 +131,7 @@ body{margin:0;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;color:#222
 
             var chip = document.createElement('a');
             chip.className = 'eg-chip';
-            chip.href = '#eg-event-' + i;
+            chip.href = '?evento=' + encodeURIComponent(ev.carpeta || '');
             chip.textContent = ev.titulo || ev.carpeta || ('Evento ' + (i + 1));
             nav.appendChild(chip);
 
@@ -133,6 +147,12 @@ body{margin:0;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;color:#222
             head.innerHTML = '<h2 class="eg-event-title"></h2><span class="eg-event-date">' +
                 nF + ' foto(s)' + (nV ? ' · ' + nV + ' video(s)' : '') + '</span>';
             head.querySelector('.eg-event-title').textContent = titulo;
+            var linkTitulo = document.createElement('a');
+            linkTitulo.href = '?evento=' + encodeURIComponent(ev.carpeta || '');
+            linkTitulo.style.cssText = 'color:inherit;text-decoration:none';
+            var h2 = head.querySelector('.eg-event-title');
+            h2.parentNode.insertBefore(linkTitulo, h2);
+            linkTitulo.appendChild(h2);
             sec.appendChild(head);
 
             if (ev.descripcion) {
@@ -143,10 +163,14 @@ body{margin:0;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;color:#222
             }
 
             var sc = document.createElement('div');
-            sc.className = 'eg-scroll';
-            sc.setAttribute('data-eg-scroll', '');
-            sc.tabIndex = 0;
-            sc.setAttribute('aria-label', 'Contenido del evento');
+            sc.className = filtro ? 'eg-grid' : 'eg-scroll';
+            if (filtro) {
+                sc.setAttribute('aria-label', 'Fotos del evento');
+            } else {
+                sc.setAttribute('data-eg-scroll', '');
+                sc.tabIndex = 0;
+                sc.setAttribute('aria-label', 'Contenido del evento');
+            }
 
             archivos.forEach(function (ruta) {
                 var src = resolver(ruta, ev.carpeta || '');
